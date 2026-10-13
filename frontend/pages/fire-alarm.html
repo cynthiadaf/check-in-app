@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fire Alarm - Today’s Guests</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <script>window.APP_CONFIG = { API_BASE_URL: "http://localhost:8000" };</script>
+  <header class="site-header">
+    <a class="brand" href="/index.html">Guest Check-In Manager</a>
+    <nav aria-label="Main navigation">
+      <a href="/index.html">Dashboard</a>
+      <a href="/pages/register.html">Register</a>
+      <a class="button button-small" href="/pages/new-entry.html">Add guest</a>
+    </nav>
+  </header>
+  <main class="container">
+    <section class="hero alarm-hero">
+      <p class="eyebrow">Emergency register</p>
+      <h1>Fire Alarm</h1>
+      <p class="muted">Guests checked in today only. Take this list with you during an evacuation.</p>
+    </section>
+    <section class="card alarm-list" aria-labelledby="checked-in-heading">
+      <div class="alarm-list-header">
+        <h2 id="checked-in-heading">Checked in today</h2>
+        <strong id="guest-count" aria-live="polite">—</strong>
+      </div>
+      <p id="page-message" class="message" role="status"></p>
+      <div id="fire-alarm-loading" class="loading">Loading today’s guests…</div>
+      <ol id="entries-list" class="guest-list"></ol>
+      <p id="empty-state" class="empty" hidden>No guests are checked in today.</p>
+    </section>
+    <div class="form-actions">
+      <a class="button button-secondary" href="/index.html">Back to dashboard</a>
+      <button id="refresh-fire-alarm" class="button" type="button">Refresh list</button>
+    </div>
+  </main>
+  <script src="/js/app.js"></script>
+  <script src="/js/fire-alarm.js"></script>
+</body>
+</html>

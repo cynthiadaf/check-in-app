@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en-GB">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Edit guest entry</title><link rel="stylesheet" href="/css/styles.css"></head>
+<body>
+  <script>window.APP_CONFIG = { API_BASE_URL: "http://localhost:8000" };</script>
+  <header class="site-header"><a class="brand" href="/index.html">Guest Check-In Manager</a><nav aria-label="Main navigation"><a href="/index.html">Dashboard</a><a href="/pages/register.html">Register</a></nav></header>
+  <main class="container narrow"><section class="hero"><p class="eyebrow">Guest entry</p><h1>Update details</h1></section>
+    <form id="edit-entry-form" class="card form-card"><label for="guest-name">Guest name <span class="readonly">Read only</span></label><input id="guest-name" readonly><label for="check-in-time">Check-in time <span class="readonly">Read only</span></label><input id="check-in-time" readonly><label for="notes">Notes</label><textarea id="notes" maxlength="2000" rows="5" required></textarea><label for="payment-method">Payment method</label><select id="payment-method"><option value="">Not recorded</option><option value="CASH">Cash</option><option value="CARD">Card</option><option value="BANK_TRANSFER">Bank transfer</option><option value="MOBILE_PAYMENT">Mobile payment</option><option value="MEMBERSHIP">Membership</option><option value="NONE">None</option><option value="OTHER">Other</option></select><p id="page-message" class="message" role="alert"></p><div class="form-actions"><a class="button button-secondary" href="/pages/register.html">Cancel</a><button class="button" type="submit">Save changes</button><button id="delete-entry" class="button button-danger" type="button">Delete</button></div></form>
+  </main><script src="/js/app.js"></script><script src="/js/edit-entry.js"></script>
+</body>
+</html>
+

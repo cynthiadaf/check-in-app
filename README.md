@@ -276,3 +276,95 @@ Before release, verify both:
 
 This repository is a learning and demonstration application. Add the
 appropriate project license before distributing it.
+# Guest Check-In Manager
+
+Guest Check-In Manager is a production-quality demonstration for recording guest arrivals in restaurants, gyms, hotels, and event venues. It uses a FastAPI/SQLAlchemy backend, PostgreSQL persistence, Alembic migrations, and a mobile-first vanilla JavaScript frontend served by Nginx.
+
+## Architecture
+
+- `backend/app/models`: `DailyGuestRegister` and `GuestEntry` domain models.
+- `backend/app/schemas`: Pydantic request and response validation.
+- `backend/app/repositories`: database queries only.
+- `backend/app/services`: register creation, entry mutations, pagination, and dashboard rules.
+- `backend/app/api`: dependency-injected REST endpoints.
+- `backend/alembic`: async PostgreSQL migration environment. The payment enum is created once with `checkfirst=True`.
+- `frontend`: independent static HTML pages, CSS, and browser JavaScript. No Node.js or bundler is needed.
+
+Authentication and tenancy are intentionally out of scope for this single-tenant demonstration. The service boundary leaves room to add them later without changing the domain model.
+
+## Run with Docker Compose
+
+Prerequisites: Docker Desktop with Compose v2.
+
+```sh
+docker compose up --build
+```
+
+The backend waits for PostgreSQL health, runs `alembic upgrade head`, and then starts FastAPI. The existing `postgres_data` volume is retained across restarts; rerunning the command makes the migration a no-op after the first successful migration.
+
+- Frontend: <http://localhost:3000>
+- API: <http://localhost:8000>
+- Swagger UI: <http://localhost:8000/docs>
+- Health: <http://localhost:8000/health>
+- PostgreSQL: `localhost:5432` (`checkin` / `checkin`)
+
+To stop containers while retaining data:
+
+```sh
+docker compose down
+```
+
+To remove the database volume and start fresh:
+
+```sh
+docker compose down -v
+docker compose up --build
+```
+
+## Local backend development
+
+Python 3.13 and PostgreSQL are required. From the repository root:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r backend\requirements.txt
+$env:DATABASE_URL = "postgresql+asyncpg://checkin:checkin@localhost:5432/checkin"
+cd backend
+alembic upgrade head
+uvicorn app.main:app --reload
+```
+
+The equivalent manual migration command is `alembic upgrade head` from `backend\`. Do not use `Base.metadata.create_all()`; schema changes are managed exclusively by Alembic.
+
+The frontend can be served by any static web server. For a quick local check, serve `frontend\` on port 3000. Each HTML page defines `window.APP_CONFIG.API_BASE_URL`; change that value in the pages when the backend is hosted elsewhere. Docker Compose uses `http://localhost:8000`.
+
+## API
+
+- `GET /api/registers`
+- `GET /api/registers/{date}`
+- `GET /api/guest-entries?date=YYYY-MM-DD&search=name&page=1&page_size=25`
+- `GET /api/guest-entries/{id}`
+- `POST /api/guest-entries` with `{ "guest_name": "...", "notes": "..." }`
+- `PATCH /api/guest-entries/{id}` with `notes` and/or nullable `payment_method`
+- `DELETE /api/guest-entries/{id}`
+- `GET /api/dashboard?date=YYYY-MM-DD`
+
+Creation always uses the current UTC application date and server-generated UTC check-in timestamp. The frontend renders timestamps in `Europe/London` with daylight-saving support and no seconds. Null payment means “not recorded”; `NONE` means no payment was required or made. Dashboard payment ties are deterministic: SQL ordering uses descending count and then ascending enum name.
+
+## Tests
+
+The included focused tests run without a database:
+
+```powershell
+pytest
+```
+
+The optional PostgreSQL integration configuration is exposed through `TEST_DATABASE_URL`:
+
+```powershell
+$env:TEST_DATABASE_URL = "postgresql+asyncpg://checkin:checkin@localhost:5432/checkin_test"
+pytest -m integration
+```
+
+SQLite is deliberately not supported for integration testing. A disposable PostgreSQL test database should be used for endpoint, concurrency, migration, and persistence coverage.
