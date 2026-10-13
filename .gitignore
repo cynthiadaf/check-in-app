@@ -218,3 +218,23 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# FastAPI / local development
+*.db
+*.sqlite
+*.sqlite3
+
+# Frontend dependencies and generated files
+node_modules/
+
+# Docker volumes and logs
+docker-volumes/
+volumes/
+postgres_data/
+logs/
+
+# IDE files
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
