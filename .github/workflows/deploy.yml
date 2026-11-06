@@ -1,0 +1,107 @@
+name: Deploy production
+
+on:
+  push:
+    branches:
+      - production
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to DigitalOcean
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DO_HOST: ${{ secrets.DO_HOST }}
+      DO_USER: ${{ secrets.DO_USER }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ROOT_DOMAIN: ${{ vars.ROOT_DOMAIN }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Load deployment SSH key
+        uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: ${{ secrets.DO_SSH }}
+
+      - name: Configure SSH host key
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$DO_HOST"
+          test -n "$DO_USER"
+          test -n "$DATABASE_URL" || { echo "Missing production secret DATABASE_URL" >&2; exit 1; }
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          ssh-keyscan -H "$DO_HOST" >> "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Validate deployment domains
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ROOT_DOMAIN" || { echo "Missing production variable ROOT_DOMAIN" >&2; exit 1; }
+          [[ "$ROOT_DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] || { echo "ROOT_DOMAIN contains invalid DNS characters" >&2; exit 1; }
+
+      - name: Check server prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh "$DO_USER@$DO_HOST" "command -v docker >/dev/null || { echo 'Docker is not installed' >&2; exit 1; }; docker compose version >/dev/null || { echo 'Docker Compose is not available' >&2; exit 1; }; command -v nginx >/dev/null || { echo 'Nginx is not installed' >&2; exit 1; }"
+
+      - name: Prepare application directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh "$DO_USER@$DO_HOST" "mkdir -p /opt/check-in-app/prod"
+
+      - name: Upload application source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git archive --format=tar HEAD | ssh "$DO_USER@$DO_HOST" "tar -xf - -C /opt/check-in-app/prod"
+
+      - name: Install Cloudflare Origin Certificate
+        shell: bash
+        env:
+          CF_ORIGIN_CERT: ${{ secrets.CF_ORIGIN_CERT }}
+        run: |
+          set -euo pipefail
+          test -n "$CF_ORIGIN_CERT" || { echo "Missing CF_ORIGIN_CERT" >&2; exit 1; }
+          printf '%s\n' "$CF_ORIGIN_CERT" | ssh "$DO_USER@$DO_HOST" \
+            "sudo install -d -m 0755 /etc/nginx/ssl && sudo tee /etc/nginx/ssl/cloudflare-origin.crt >/dev/null && sudo chmod 0644 /etc/nginx/ssl/cloudflare-origin.crt"
+
+      - name: Install Cloudflare Origin private key
+        shell: bash
+        env:
+          CF_ORIGIN_KEY: ${{ secrets.CF_ORIGIN_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$CF_ORIGIN_KEY" || { echo "Missing CF_ORIGIN_KEY" >&2; exit 1; }
+          printf '%s\n' "$CF_ORIGIN_KEY" | ssh "$DO_USER@$DO_HOST" \
+            "sudo install -d -m 0755 /etc/nginx/ssl && sudo tee /etc/nginx/ssl/cloudflare-origin.key >/dev/null && sudo chmod 0600 /etc/nginx/ssl/cloudflare-origin.key"
+
+      - name: Build and start application containers
+        shell: bash
+        run: |
+          set -euo pipefail
+          DATABASE_URL_B64="$(printf '%s' "$DATABASE_URL" | base64 -w0)"
+          printf '%s' "$DATABASE_URL_B64" | ssh "$DO_USER@$DO_HOST" "cd /opt/check-in-app/prod && base64 -d > .database_url && printf 'DATABASE_URL=%s\\nROOT_DOMAIN=%s\\n' \"\$(cat .database_url)\" '$ROOT_DOMAIN' > .env && rm -f .database_url && docker compose -p checkin-prod -f docker-compose.prod.yml up -d --build --remove-orphans"
+
+      - name: Install and validate Nginx configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          scp nginx.conf "$DO_USER@$DO_HOST:/tmp/check-in-app.nginx"
+          ssh "$DO_USER@$DO_HOST" "ROOT_DOMAIN='$ROOT_DOMAIN' sudo -E sh -c 'sed -i \"s/__ROOT_DOMAIN__/$ROOT_DOMAIN/g\" /tmp/check-in-app.nginx && install -m 0644 /tmp/check-in-app.nginx /etc/nginx/sites-available/check-in-app.conf && ln -sfn /etc/nginx/sites-available/check-in-app.conf /etc/nginx/sites-enabled/check-in-app.conf && nginx -t && systemctl enable --now nginx && systemctl reload nginx'"
+
+      - name: Verify backend health
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh "$DO_USER@$DO_HOST" "curl --fail --silent --show-error http://127.0.0.1:8000/health"
