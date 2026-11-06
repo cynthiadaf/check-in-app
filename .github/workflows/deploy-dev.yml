@@ -17,7 +17,7 @@ jobs:
     env:
       DO_HOST: ${{ secrets.DO_HOST }}
       DO_USER: ${{ secrets.DO_USER }}
-      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
       ROOT_DOMAIN: ${{ vars.ROOT_DOMAIN }}
 
     steps:
@@ -35,7 +35,7 @@ jobs:
           set -euo pipefail
           test -n "$DO_HOST"
           test -n "$DO_USER"
-          test -n "$POSTGRES_PASSWORD" || { echo "Missing development secret POSTGRES_PASSWORD" >&2; exit 1; }
+          test -n "$DATABASE_URL" || { echo "Missing development secret DATABASE_URL" >&2; exit 1; }
           test -n "$ROOT_DOMAIN" || { echo "Missing development variable ROOT_DOMAIN" >&2; exit 1; }
           [[ "$ROOT_DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] || { echo "ROOT_DOMAIN contains invalid DNS characters" >&2; exit 1; }
           mkdir -p "$HOME/.ssh"
@@ -85,8 +85,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          PASSWORD_B64="$(printf '%s' "$POSTGRES_PASSWORD" | base64 -w0)"
-          ssh "$DO_USER@$DO_HOST" "cd /opt/check-in-app/dev && printf '%s' '$PASSWORD_B64' | base64 -d > .postgres_password && printf 'POSTGRES_PASSWORD=%s\\nROOT_DOMAIN=%s\\n' \"\$(cat .postgres_password)\" '$ROOT_DOMAIN' > .env && rm -f .postgres_password && docker compose -p checkin-dev -f docker-compose.dev.yml up -d --build --remove-orphans"
+          DATABASE_URL_B64="$(printf '%s' "$DATABASE_URL" | base64 -w0)"
+          printf '%s' "$DATABASE_URL_B64" | ssh "$DO_USER@$DO_HOST" "cd /opt/check-in-app/dev && base64 -d > .database_url && printf 'DATABASE_URL=%s\\nROOT_DOMAIN=%s\\n' \"\$(cat .database_url)\" '$ROOT_DOMAIN' > .env && rm -f .database_url && docker compose -p checkin-dev -f docker-compose.dev.yml up -d --build --remove-orphans"
 
       - name: Install and validate Nginx configuration
         shell: bash
