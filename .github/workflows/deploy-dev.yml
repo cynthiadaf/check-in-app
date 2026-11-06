@@ -18,7 +18,7 @@ jobs:
       DO_HOST: ${{ secrets.DO_HOST }}
       DO_USER: ${{ secrets.DO_USER }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      ROOT_DOMAIN: ${{ vars.ROOT_DOMAIN }}
+      ROOT_DOMAIN: ${{ secrets.ROOT_DOMAIN }}
 
     steps:
       - name: Check out repository
