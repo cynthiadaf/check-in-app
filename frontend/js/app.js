@@ -23,9 +23,11 @@ const api = async (path, options = {}) => {
       const body = await response.json();
       message = body.detail?.detail || body.detail || message;
     } catch (_) {}
+    const error = new Error(message);
+    error.status = response.status;
     if (response.status === 401 && !path.startsWith("/api/auth/"))
       window.location.href = `/pages/login.html?next=${encodeURIComponent(window.location.pathname)}`;
-    throw new Error(message);
+    throw error;
   }
   return response.status === 204 ? null : response.json();
 };
@@ -44,20 +46,30 @@ if (!isLoginPage) {
   api("/api/auth/me")
     .then((account) => {
       const nav = document.querySelector(".site-header nav");
-      if (!nav) return;
-      const accountLink = document.createElement("a");
-      accountLink.href = "/pages/password.html";
-      accountLink.textContent = account.email;
-      nav.append(accountLink);
-      const logout = document.createElement("button");
-      logout.className = "button button-small button-secondary";
-      logout.type = "button";
-      logout.textContent = "Sign out";
-      logout.addEventListener("click", async () => {
-        await api("/api/auth/logout", { method: "POST" });
-        window.location.href = "/pages/login.html";
-      });
-      nav.append(logout);
+      if (nav) {
+        const accountLink = document.createElement("a");
+        accountLink.href = "/pages/password.html";
+        accountLink.textContent = account.email;
+        nav.append(accountLink);
+        const logout = document.createElement("button");
+        logout.className = "button button-small button-secondary";
+        logout.type = "button";
+        logout.textContent = "Sign out";
+        logout.addEventListener("click", async () => {
+          await api("/api/auth/logout", { method: "POST" });
+          window.location.href = "/pages/login.html";
+        });
+        nav.append(logout);
+      }
+      document.documentElement.classList.remove("auth-pending");
     })
-    .catch(() => {});
+    .catch((error) => {
+      if (error.status === 401) {
+        window.location.href = `/pages/login.html?next=${encodeURIComponent(window.location.pathname)}`;
+        return;
+      }
+      document.documentElement.classList.remove("auth-pending");
+      const message = document.querySelector("#page-message");
+      if (message) message.textContent = "Unable to verify your session. Please try again.";
+    });
 }

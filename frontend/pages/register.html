@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en-GB">
+<html lang="en-GB" class="auth-pending">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Guest Register</title>
+    <title>Guest List</title>
     <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body>
@@ -14,7 +14,7 @@
       <a class="brand" href="/index.html">Guest Check-In Manager</a>
       <nav aria-label="Main navigation">
         <a href="/index.html">Dashboard</a
-        ><a href="/pages/register.html" aria-current="page">Register</a
+        ><a href="/pages/register.html" aria-current="page">Guest list</a
         ><a class="button button-small" href="/pages/new-entry.html"
           >Add guest</a
         >
@@ -22,10 +22,10 @@
     </header>
     <main class="container">
       <section class="hero">
-        <p class="eyebrow">Guest register</p>
+        <p class="eyebrow">Guest list</p>
         <h1>Recent check-ins</h1>
         <p class="muted">
-          Search and filter the register. Newest check-ins appear first.
+          Search and filter the guest list. Newest check-ins appear first.
         </p>
       </section>
       <form id="register-filters" class="toolbar filter-form">
@@ -38,7 +38,7 @@
         </button>
       </form>
       <p id="page-message" class="message" role="status"></p>
-      <div id="register-loading" class="loading" hidden>Loading register…</div>
+      <div id="register-loading" class="loading" hidden>Loading guest list…</div>
       <div class="table-wrap card">
         <table>
           <caption class="sr-only">
