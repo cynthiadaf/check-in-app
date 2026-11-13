@@ -19,6 +19,7 @@ jobs:
       DO_USER: ${{ secrets.DO_USER }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       ROOT_DOMAIN: ${{ secrets.ROOT_DOMAIN }}
+      AUTH_SETUP_TOKEN: ${{ secrets.AUTH_SETUP_TOKEN }}
 
     steps:
       - name: Check out repository
@@ -36,10 +37,21 @@ jobs:
           test -n "$DO_HOST"
           test -n "$DO_USER"
           test -n "$DATABASE_URL" || { echo "Missing production secret DATABASE_URL" >&2; exit 1; }
+          test -n "$AUTH_SETUP_TOKEN" || { echo "Missing production secret AUTH_SETUP_TOKEN" >&2; exit 1; }
           mkdir -p "$HOME/.ssh"
           chmod 700 "$HOME/.ssh"
           ssh-keyscan -H "$DO_HOST" >> "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Validate authentication secrets
+        shell: bash
+        env:
+          AUTH_EMAIL: ${{ secrets.AUTH_EMAIL }}
+          AUTH_PASSWORD: ${{ secrets.AUTH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$AUTH_EMAIL" || { echo "Missing production secret AUTH_EMAIL" >&2; exit 1; }
+          test -n "$AUTH_PASSWORD" || { echo "Missing production secret AUTH_PASSWORD" >&2; exit 1; }
 
       - name: Validate deployment domains
         shell: bash
@@ -91,7 +103,8 @@ jobs:
         run: |
           set -euo pipefail
           DATABASE_URL_B64="$(printf '%s' "$DATABASE_URL" | base64 -w0)"
-          printf '%s' "$DATABASE_URL_B64" | ssh "$DO_USER@$DO_HOST" "cd /opt/check-in-app/prod && base64 -d > .database_url && printf 'DATABASE_URL=%s\\nROOT_DOMAIN=%s\\n' \"\$(cat .database_url)\" '$ROOT_DOMAIN' > .env && rm -f .database_url && docker compose -p checkin-prod -f docker-compose.prod.yml up -d --build --remove-orphans"
+          AUTH_SETUP_TOKEN_B64="$(printf '%s' "$AUTH_SETUP_TOKEN" | base64 -w0)"
+          ssh "$DO_USER@$DO_HOST" "cd /opt/check-in-app/prod && printf '%s' '$DATABASE_URL_B64' | base64 -d > .database_url && printf '%s' '$AUTH_SETUP_TOKEN_B64' | base64 -d > .auth_setup_token && printf 'DATABASE_URL=%s\\nROOT_DOMAIN=%s\\nAUTH_SETUP_TOKEN=%s\\n' \"\$(cat .database_url)\" '$ROOT_DOMAIN' \"\$(cat .auth_setup_token)\" > .env && rm -f .database_url .auth_setup_token && docker compose -p checkin-prod -f docker-compose.prod.yml up -d --build --remove-orphans"
 
       - name: Install and validate Nginx configuration
         shell: bash
@@ -105,3 +118,23 @@ jobs:
         run: |
           set -euo pipefail
           ssh "$DO_USER@$DO_HOST" "curl --fail --silent --show-error http://127.0.0.1:8000/health"
+
+      - name: Provision production account
+        shell: bash
+        env:
+          AUTH_EMAIL: ${{ secrets.AUTH_EMAIL }}
+          AUTH_PASSWORD: ${{ secrets.AUTH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$AUTH_EMAIL" || { echo "Missing production secret AUTH_EMAIL" >&2; exit 1; }
+          test -n "$AUTH_PASSWORD" || { echo "Missing production secret AUTH_PASSWORD" >&2; exit 1; }
+          payload="$(printf '%s' "$AUTH_EMAIL" | jq -Rs --arg password "$AUTH_PASSWORD" '{email: (rtrimstr("\\n")), password: $password}')"
+          status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            --request POST "https://www.$ROOT_DOMAIN/api/auth/setup" \
+            --header "X-Setup-Token: $AUTH_SETUP_TOKEN" \
+            --header 'Content-Type: application/json' \
+            --data "$payload")"
+          case "$status" in
+            201|409) echo "Account provisioning complete or account already exists." ;;
+            *) echo "Account provisioning failed with HTTP $status" >&2; exit 1 ;;
+          esac

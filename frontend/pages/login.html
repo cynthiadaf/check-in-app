@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign in - Guest Check-In Manager</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <script>
+      window.APP_CONFIG = { API_BASE_URL: "" };
+    </script>
+    <main class="container narrow auth-container">
+      <section class="hero">
+        <p class="eyebrow">Guest Check-In Manager</p>
+        <h1>Sign in</h1>
+        <p class="muted">Use your account to access the guest register.</p>
+      </section>
+      <form id="login-form" class="card form-card">
+        <label for="email">Email address</label
+        ><input
+          id="email"
+          name="email"
+          type="email"
+          autocomplete="username"
+          required
+          autofocus
+        />
+        <label for="password">Password</label
+        ><input
+          id="password"
+          name="password"
+          type="password"
+          autocomplete="current-password"
+          required
+        />
+        <p id="page-message" class="message" role="alert"></p>
+        <button class="button" type="submit">Sign in</button>
+      </form>
+    </main>
+    <script src="/js/app.js"></script>
+    <script src="/js/login.js"></script>
+  </body>
+</html>

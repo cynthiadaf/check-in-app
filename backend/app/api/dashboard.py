@@ -6,10 +6,11 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import session_dependency
+from app.api.auth import current_account
 from app.schemas.guest import DashboardRead
 from app.services.guest import GuestService
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(current_account)])
 
 
 @router.get("/dashboard", response_model=DashboardRead)
@@ -20,5 +21,6 @@ async def get_dashboard(
     """Return counts and the most common payment method; ties use enum order."""
     from datetime import datetime, timezone
 
-    return await GuestService(session).dashboard(date_filter or datetime.now(timezone.utc).date())
-
+    return await GuestService(session).dashboard(
+        date_filter or datetime.now(timezone.utc).date()
+    )

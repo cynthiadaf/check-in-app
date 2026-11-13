@@ -5,9 +5,8 @@ guest arrivals at restaurants, gyms, hotels, event venues, and similar
 businesses. It provides a simple guest register, dashboard summaries, and
 searchable daily records that can also support roll call during an emergency.
 
-The application is designed as a single-tenant demonstration. Authentication,
-authorization, users, organizations, and tenancy are intentionally out of
-scope, but the service and repository boundaries leave room to add them later.
+The application is designed as a single-tenant application with one operator
+account. There is no public registration or multi-user account management.
 
 ## Technology stack
 
@@ -41,6 +40,8 @@ step.
   only.
 - Provide loading, empty, success, and error states with accessible controls
   and a deletion confirmation step.
+- Sign in with the provisioned email and password, change the password, and
+  sign out other active sessions after a password change.
 
 ## Domain model
 
@@ -92,6 +93,11 @@ available at `/docs`, with the OpenAPI schema at `/openapi.json`.
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
 | `GET` | `/health` | Backend health check |
+| `POST` | `/api/auth/setup` | One-time account provisioning using `X-Setup-Token` |
+| `POST` | `/api/auth/login` | Start an authenticated session |
+| `POST` | `/api/auth/logout` | Revoke the current session |
+| `GET` | `/api/auth/me` | Return the signed-in account |
+| `POST` | `/api/auth/password` | Change the password and revoke old sessions |
 | `GET` | `/api/registers` | List daily registers |
 | `GET` | `/api/registers/{date}` | Get one register by `YYYY-MM-DD` date |
 | `GET` | `/api/guest-entries` | List paginated guest entries |
@@ -237,7 +243,36 @@ settings include:
 DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/guest_check_in
 TEST_DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/guest_check_in_test
 FRONTEND_ORIGIN=http://localhost:3000
+AUTH_SETUP_TOKEN=use-a-long-random-secret-only-during-provisioning
+AUTH_COOKIE_SECURE=true
 ```
+
+Authentication uses Argon2 password hashes and opaque, revocable session tokens
+stored only as hashes in PostgreSQL. The browser receives the token in an
+HttpOnly, SameSite=Lax cookie; it is never available to frontend JavaScript.
+
+For production deployments, add `AUTH_SETUP_TOKEN`, `AUTH_EMAIL`, and
+`AUTH_PASSWORD` as GitHub Actions secrets. The production workflow uses them to
+perform the one-time setup request after deployment. Later deployments receive
+`409 Account already exists`, which is treated as success. Changing the
+`AUTH_PASSWORD` GitHub secret does not change an existing account password; use
+the signed-in Change password page for that.
+
+On a fresh database, set a long random `AUTH_SETUP_TOKEN` in the environment,
+start the backend, then provision the account once:
+
+```bash
+curl -X POST http://localhost:8000/api/auth/setup \
+  -H "X-Setup-Token: $AUTH_SETUP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"operator@example.com","password":"use-a-long-unique-password"}'
+```
+
+The endpoint returns `404` when the setup token is missing or incorrect and
+`409` after an account already exists. Remove the setup token from the runtime
+environment after provisioning. In production, use HTTPS and keep
+`AUTH_COOKIE_SECURE=true`. Enforce login throttling at the reverse proxy or
+WAF in front of the API.
 
 The frontend reads the backend URL from a runtime configuration value such as
 `window.APP_CONFIG.API_BASE_URL`. This keeps the API location configurable and
@@ -289,8 +324,6 @@ Guest Check-In Manager is a production-quality demonstration for recording guest
 - `backend/app/api`: dependency-injected REST endpoints.
 - `backend/alembic`: async PostgreSQL migration environment. The payment enum is created once with `checkfirst=True`.
 - `frontend`: independent static HTML pages, CSS, and browser JavaScript. No Node.js or bundler is needed.
-
-Authentication and tenancy are intentionally out of scope for this single-tenant demonstration. The service boundary leaves room to add them later without changing the domain model.
 
 ## Run with Docker Compose
 

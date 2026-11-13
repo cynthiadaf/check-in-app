@@ -12,17 +12,21 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://checkin:checkin@localhost:5432/checkin"
     cors_origins: str = "http://localhost:3000"
     timezone: str = "UTC"
+    auth_setup_token: str = ""
+    auth_session_ttl_hours: int = 12
+    auth_cookie_secure: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="", extra="ignore")
 
     @property
     def cors_origin_list(self) -> list[str]:
         """Return configured CORS origins as a list."""
-        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        return [
+            origin.strip() for origin in self.cors_origins.split(",") if origin.strip()
+        ]
 
 
 @lru_cache
 def get_settings() -> Settings:
     """Return the cached application settings."""
     return Settings()
-

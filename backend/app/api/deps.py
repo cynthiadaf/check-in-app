@@ -11,4 +11,3 @@ async def session_dependency() -> AsyncIterator[AsyncSession]:
     """Expose the database session dependency for route modules."""
     async for session in get_session():
         yield session
-

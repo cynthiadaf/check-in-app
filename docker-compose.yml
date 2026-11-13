@@ -19,6 +19,8 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://checkin:checkin@db:5432/checkin
       CORS_ORIGINS: http://localhost:3000
+      AUTH_SETUP_TOKEN: ${AUTH_SETUP_TOKEN:-}
+      AUTH_COOKIE_SECURE: "false"
     ports:
       - "8000:8000"
     depends_on:

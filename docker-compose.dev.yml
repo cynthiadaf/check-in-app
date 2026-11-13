@@ -4,6 +4,8 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       CORS_ORIGINS: https://dev.${ROOT_DOMAIN}
+      AUTH_SETUP_TOKEN: ${AUTH_SETUP_TOKEN:?AUTH_SETUP_TOKEN is required}
+      AUTH_COOKIE_SECURE: "true"
     ports:
       - "127.0.0.1:8001:8000"
     healthcheck:
