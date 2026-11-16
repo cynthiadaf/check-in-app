@@ -21,21 +21,30 @@
       </nav>
     </header>
     <main class="container">
-      <section class="hero dashboard-hero">
-        <p class="eyebrow">Welcome</p>
-        <h1>Today at a glance</h1>
-        <p class="muted">
-          Monitor arrivals and keep your guest list up to date.
-        </p>
-        <a class="button button-alarm" href="/pages/fire-alarm.html"
-          >Fire Alarm</a
-        >
+      <section class="dashboard-hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Welcome back</p>
+          <h1>Today at a glance</h1>
+          <p class="muted">
+            Monitor arrivals, keep your guest list current, and stay ready for
+            anything.
+          </p>
+        </div>
+        <div class="hero-actions">
+          <span class="status-badge"><span aria-hidden="true"></span>Live overview</span>
+          <a class="button button-alarm" href="/pages/fire-alarm.html"
+            >Open fire roll call</a
+          >
+        </div>
       </section>
-      <section class="toolbar" aria-label="Dashboard filters">
-        <label for="dashboard-date">Selected date</label>
+      <section class="toolbar dashboard-toolbar" aria-label="Dashboard filters">
+        <div class="toolbar-field">
+          <label for="dashboard-date">Review a date</label>
+          <span class="toolbar-hint">View guest activity for any day</span>
+        </div>
         <input id="dashboard-date" type="date" />
         <button id="refresh-dashboard" class="button button-secondary">
-          Refresh
+          Refresh overview
         </button>
       </section>
       <p id="page-message" class="message" role="status"></p>
@@ -43,25 +52,37 @@
         <article class="stat-card">
           <span class="stat-label">Today’s guests</span
           ><strong id="today-count">—</strong>
+          <span class="stat-detail">Arrivals so far today</span>
         </article>
         <article class="stat-card">
           <span class="stat-label">Selected date</span
           ><strong id="selected-count">—</strong>
+          <span class="stat-detail">Guests on this date</span>
         </article>
         <article class="stat-card">
           <span class="stat-label">Most common payment</span
           ><strong id="common-payment">—</strong>
+          <span class="stat-detail">Based on recorded payments</span>
         </article>
       </section>
       <section class="card callout">
-        <h2>Ready to check someone in?</h2>
-        <p class="muted">
-          Create an entry in seconds. The server records the current UTC
-          check-in time automatically.
-        </p>
+        <div>
+          <p class="eyebrow">Quick action</p>
+          <h2>Ready to check someone in?</h2>
+          <p class="muted">
+            Create an entry in seconds. The server records the current UTC
+            check-in time automatically.
+          </p>
+        </div>
         <a class="button" href="/pages/new-entry.html">Add a guest</a>
       </section>
     </main>
+    <footer class="site-footer">
+      <div class="site-footer-inner">
+        <p>&copy; Xertz Industries <span id="footer-year"></span></p>
+        <p class="site-footer-tagline">Guest check-in, made simple.</p>
+      </div>
+    </footer>
     <script src="/js/app.js"></script>
     <script src="/js/dashboard.js"></script>
   </body>

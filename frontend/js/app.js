@@ -40,6 +40,12 @@ const formatTime = (value) =>
 const paymentLabel = (value) =>
   value ? PAYMENT_LABELS[value] || value : "Not recorded";
 const todayUtc = () => new Date().toISOString().slice(0, 10);
+const updateFooterYear = () => {
+  const year = document.querySelector("#footer-year");
+  if (year) year.textContent = new Date().getFullYear();
+};
+
+updateFooterYear();
 
 const isLoginPage = window.location.pathname.endsWith("/login.html");
 if (!isLoginPage) {
